@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
           
           // Ensure directory exists (it should after copy, but being safe)
           if (!fs.existsSync(path.dirname(testFile))) {
-             fs.mkdirSync(path.dirname(testFile), { recursive: true });
+            fs.mkdirSync(path.dirname(testFile), { recursive: true });
           }
 
           send('Writing simulation test contract...\r\n');
@@ -119,9 +119,9 @@ export async function POST(req: NextRequest) {
           
           send(`> forge ${args.join(' ')}\r\n\r\n`);
         } else {
-             send('Error: Unknown operation type\n');
-             controller.close();
-             return;
+            send('Error: Unknown operation type\n');
+            controller.close();
+            return;
         }
 
         // --- 4. EXECUTE ---

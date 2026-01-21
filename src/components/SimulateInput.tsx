@@ -42,7 +42,7 @@ export default function SimulateInput({
   setRpcUrl,
 }: SimulateInputProps) {
   return (
-    <div className="glass-panel p-6 animate-fade-in space-y-6">
+    <div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="input-group md:col-span-2">
           <label className="input-label">RPC URL (Required for fork)</label>

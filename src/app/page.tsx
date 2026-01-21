@@ -87,8 +87,8 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen">
-      <div>
+    <main>
+      <div style={{marginBottom: '10px'}}>
         <div className="flex space-x-2">
           <button 
             className={`tab-btn mr-4 ${activeTab === 'TRACE' ? 'active shadow-sm' : 'hover:bg-gray-100'}`}
@@ -142,7 +142,7 @@ export default function Home() {
         </div>
 
         {/* Right Column: Terminal */}
-        <div className="glass-panel">
+        <div className="terminal-container">
           <Terminal data={latestOutput} />
         </div>
       </div>

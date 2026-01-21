@@ -23,8 +23,8 @@ body {
   color: var(--text-primary);
   background: var(--background);
   font-family: 'Space Grotesk', sans-serif;
-  margin: 30px;
-  min-height: 100vh;
+  margin: 20px;
+  min-height: 80vh;
 }
 
 * {
@@ -52,6 +52,7 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   box-shadow: 0 0.5rem 1.2rem rgb(189 197 209 / 20%);
+  margin-bottom: 10px;
 }
 
 .input-group {
@@ -169,6 +170,12 @@ body {
   background: var(--primary-blue);
   color: white;
   border-color: var(--primary-blue);
+}
+
+.terminal-container {
+  padding: 16px;
+  background-color: #0a0a0a;
+  border-radius: 0.5rem;
 }
 
 @keyframes fadeIn {

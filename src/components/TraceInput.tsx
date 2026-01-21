@@ -14,7 +14,7 @@ export default function TraceInput({
   setTxHash,
 }: TraceInputProps) {
   return (
-    <div className="glass-panel p-6 animate-fade-in space-y-6">
+    <div>
       <div className="input-group">
         <label className="input-label">RPC URL</label>
         <input 
