@@ -7,20 +7,29 @@ import { spawn } from 'child_process';
 // Prevent Next.js from caching the response
 export const dynamic = 'force-dynamic';
 
-function copyRecursiveSync(src: string, dest: string) {
+function copyRecursiveSync(src: string, dest: string, excludes: string[] = []) {
   const exists = fs.existsSync(src);
   const stats = exists && fs.statSync(src);
   const isDirectory = stats && stats.isDirectory();
+
+  const basename = path.basename(src);
+  if (excludes.includes(basename)) return;
 
   if (isDirectory) {
     if (!fs.existsSync(dest)) {
       fs.mkdirSync(dest, { recursive: true });
     }
     fs.readdirSync(src).forEach((childItemName) => {
-      copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
+      copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName), excludes);
     });
   } else {
     fs.copyFileSync(src, dest);
+    // Ensure destination file is writable
+    try {
+      fs.chmodSync(dest, 0o666);
+    } catch (e) {
+      console.warn(`Failed to chmod ${dest}`, e);
+    }
   }
 }
 
@@ -56,7 +65,7 @@ export async function POST(req: NextRequest) {
 
         // Copy everything to temp (expensive but necessary for isolation and read-only fs)
         // Optimization: In a real app, maybe only copy what's needed or pre-warm /tmp
-        copyRecursiveSync(sourceFoundryDir, tempDir);
+        copyRecursiveSync(sourceFoundryDir, tempDir, ['out', 'cache', 'broadcast', '.git']);
 
         const foundryDir = tempDir;
 
