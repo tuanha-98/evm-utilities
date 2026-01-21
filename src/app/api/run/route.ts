@@ -18,6 +18,12 @@ function copyRecursiveSync(src: string, dest: string, excludes: string[] = []) {
   if (isDirectory) {
     if (!fs.existsSync(dest)) {
       fs.mkdirSync(dest, { recursive: true });
+      // Ensure directory is writable
+      try {
+        fs.chmodSync(dest, 0o777);
+      } catch (e) {
+        console.warn(`Failed to chmod directory ${dest}`, e);
+      }
     }
     fs.readdirSync(src).forEach((childItemName) => {
       copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName), excludes);
@@ -134,6 +140,10 @@ export async function POST(req: NextRequest) {
         }
 
         // --- 4. EXECUTE ---
+        // Create a fake home directory for foundry to store its cache/config
+        const fakeHome = path.join(tempDir, '.home');
+        fs.mkdirSync(fakeHome, { recursive: true });
+
         const child = spawn(command, args, {
             cwd: foundryDir,
             env: {
@@ -141,7 +151,7 @@ export async function POST(req: NextRequest) {
                 // Ensure the binaries are in PATH if calling by name
                 PATH: `${projectBin}:${userBin}:${process.env.PATH}`, 
                 FORCE_COLOR: '1', // Force color for standard spawn
-                HOME: homeDir // Some foundry tools need HOME
+                HOME: fakeHome // Override HOME so foundry writes to tmp
             }
         });
 

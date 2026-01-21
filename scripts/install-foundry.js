@@ -36,7 +36,9 @@ if (fs.existsSync(forgePath) && fs.existsSync(castPath)) {
 
       console.log('Copying binaries to ./bin...');
       fs.copyFileSync(path.join(foundryBin, 'forge'), forgePath);
+      try { fs.chmodSync(forgePath, 0o755); } catch (e) { console.warn('Could not chmod forge', e); }
       fs.copyFileSync(path.join(foundryBin, 'cast'), castPath);
+      try { fs.chmodSync(castPath, 0o755); } catch (e) { console.warn('Could not chmod cast', e); }
       
       console.log('Foundry installed successfully to ./bin');
   } catch (e) {
