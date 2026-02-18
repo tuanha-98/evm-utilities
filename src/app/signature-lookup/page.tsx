@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { Typography, Input, Table, Card, Space, Tag, Flex, Button, message, Skeleton } from 'antd';
-import { SearchOutlined, CheckCircleFilled, CopyOutlined } from '@ant-design/icons';
+import { SearchOutlined, CheckCircleFilled, CopyOutlined, StopOutlined } from '@ant-design/icons';
 import './signature.css';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 interface SignatureResult {
   hash: string;
@@ -22,12 +22,27 @@ export default function SignatureLookup() {
   const [searched, setSearched] = useState(false);
 
   const handleSearch = async () => {
-    if (!searchText) return;
+    const query = searchText.trim();
+    if (!query) return;
     setLoading(true);
     setSearched(true);
     try {
-      const url = new URL('https://api.4byte.sourcify.dev/signature-database/v1/search');
-      url.searchParams.append('query', searchText);
+      let url: URL;
+      if (query.startsWith('0x')) {
+        url = new URL('https://api.4byte.sourcify.dev/signature-database/v1/lookup?filter=false');
+        if (query.length === 10) {
+          url.searchParams.append('function', query);
+        } else if (query.length === 66) {
+          url.searchParams.append('event', query);
+        } else {
+          message.error('Invalid hash length. Must be 4 bytes (8 hex chars) or 32 bytes (64 hex chars).');
+          setLoading(false);
+          return;
+        }
+      } else {
+        url = new URL('https://api.4byte.sourcify.dev/signature-database/v1/search?filter=false');
+        url.searchParams.append('query', query);
+      }
       
       const response = await fetch(url.toString());
       const data = await response.json();
@@ -84,7 +99,21 @@ export default function SignatureLookup() {
       key: 'type',
       width: 120,
       render: (type: string) => (
-        <Tag color={type === 'function' ? 'blue' : 'purple'} style={{ textTransform: 'capitalize', borderRadius: '4px' }}>
+        <Tag 
+          bordered={false} 
+          style={{ 
+            textTransform: 'capitalize', 
+            borderRadius: '6px',
+            padding: '4px 10px',
+            fontSize: '12px',
+            fontWeight: 600,
+            color: type === 'function' ? '#3b82f6' : '#8b5cf6', // Blue-500 : Violet-500
+            background: type === 'function' ? '#eff6ff' : '#f5f3ff', // Blue-50 : Violet-50
+            display: 'inline-flex',
+            alignItems: 'center',
+            lineHeight: 1
+          }}
+        >
           {type}
         </Tag>
       ),
@@ -96,8 +125,13 @@ export default function SignatureLookup() {
       width: 450,
       render: (name: string) => (
         <Text 
-          copyable={{ icon: <CopyOutlined style={{ color: '#bfbfbf', fontSize: '12px' }} /> }} 
-          style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '13px', color: '#1a1a1a' }}
+          copyable={{ icon: <CopyOutlined style={{ color: '#94a3b8', fontSize: '14px' }} /> }} 
+          style={{ 
+            fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace', 
+            fontSize: '14px', 
+            color: '#1e293b', // Slate-800
+            fontWeight: 500
+          }}
         >
           {name}
         </Text>
@@ -108,13 +142,23 @@ export default function SignatureLookup() {
       dataIndex: 'hash',
       key: 'hash',
       render: (hash: string, record: SignatureResult) => (
-        <Flex align="center" gap="small">
-          {record.hasVerifiedContract && (
-            <CheckCircleFilled style={{ color: '#27c93f', fontSize: '14px' }} />
+        <Flex align="center" gap="middle">
+          {record.hasVerifiedContract ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: '#dcfce7' }}>
+              <CheckCircleFilled style={{ color: '#16a34a', fontSize: '14px' }} />
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: '#f1f5f9' }}>
+              <StopOutlined style={{ color: '#94a3b8', fontSize: '14px' }} />
+            </div>
           )}
           <Text 
-            copyable={{ icon: <CopyOutlined style={{ color: '#bfbfbf', fontSize: '12px' }} /> }} 
-            style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '13px', color: '#1a1a1a' }}
+            copyable={{ icon: <CopyOutlined style={{ color: '#94a3b8', fontSize: '14px' }} /> }} 
+            style={{ 
+              fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace', 
+              fontSize: '13px', 
+              color: '#64748b' // Slate-500
+            }}
           >
             {hash}
           </Text>
@@ -125,56 +169,77 @@ export default function SignatureLookup() {
 
   return (
     <div className="signature-lookup-container">
-      <div style={{ marginBottom: 20 }}>
-        <Title level={4} style={{ margin: '0 0 4px 0' }}>Signature Lookup</Title>
-        <Text type="secondary" style={{ fontSize: '14px' }}>
-          Search for function and event signatures using Sourcify 4byte database.
-        </Text>
-      </div>
-
-      <Card 
-        styles={{ body: { padding: '16px' } }}
+      <div 
         style={{ 
-          marginBottom: 20, 
-          borderRadius: '12px', 
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-          flexShrink: 0
+          maxWidth: '600px', 
+          width: '100%',
+          margin: '0 auto 32px auto', 
+          marginTop: searched ? '0' : '20vh',
+          transition: 'all 0.5s ease-in-out'
         }}
       >
-        <Space.Compact style={{ width: '100%' }}>
-          <Input 
-            size="large"
-            placeholder="Search by function name (e.g. transfer*, balance?f)" 
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            onPressEnter={handleSearch}
-            prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
-            style={{ borderRadius: '8px 0 0 8px' }}
-          />
-          <Button 
-              type="primary" 
-              size="large" 
-              onClick={handleSearch} 
-              loading={loading}
-              style={{ width: '120px', borderRadius: '0 8px 8px 0', background: '#2b4fa3' }}
-          >
-            Search
-          </Button>
-        </Space.Compact>
-      </Card>
+        <Card 
+          styles={{ body: { padding: 4 } }}
+          style={{ 
+            borderRadius: '12px', 
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05)',
+            overflow: 'hidden',
+            background: 'white'
+          }}
+        >
+          <div style={{ display: 'flex', width: '100%', alignItems: 'center' }}>
+            <Input 
+              size="large"
+              placeholder="Search by function name (e.g. transfer) or hash (0x...)" 
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onPressEnter={handleSearch}
+              prefix={<SearchOutlined style={{ color: '#94a3b8', fontSize: '16px', margin: '0 4px' }} />}
+              style={{ 
+                border: 'none', 
+                boxShadow: 'none',
+                height: '48px',
+                fontSize: '14px',
+                backgroundColor: 'transparent',
+                flex: 1
+              }}
+            />
+            <Button 
+                type="primary" 
+                size="large" 
+                onClick={handleSearch} 
+                loading={loading}
+                style={{ 
+                  width: '100px', 
+                  height: '48px', 
+                  borderRadius: '8px', 
+                  background: '#1677ff', // Indigo-600
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)',
+                  border: 'none',
+                  margin: '0'
+                }}
+            >
+              Search
+            </Button>
+          </div>
+        </Card>
+      </div>
 
       <div style={{ minHeight: 0 }}>
         {searched && !loading && (
-          <div style={{ marginBottom: 8, paddingLeft: 4 }}>
-            <Text type="secondary" style={{ fontSize: '13px' }}>Found {results.length} signatures</Text>
+          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px' }}>
+            <Text style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>
+              Found {results.length} signatures
+            </Text>
           </div>
         )}
         
         <div className="table-wrapper">
           {loading ? (
-            <div style={{ padding: '24px' }}>
-              <Skeleton active paragraph={{ rows: 5 }} />
+            <div style={{ padding: '40px' }}>
+              <Skeleton active paragraph={{ rows: 6 }} />
             </div>
           ) : (
             <Table 

@@ -33,6 +33,10 @@ export default function Navigation() {
             key: '/signature-lookup',
             label: <Link href="/signature-lookup">Signatures</Link>,
           },
+          {
+            key: '/converter',
+            label: <Link href="/converter">Converter</Link>,
+          },
         ]}
       />
     </Header>
