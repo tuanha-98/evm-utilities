@@ -1,11 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Typography, Input, Table, Card, Space, Tag, Flex, Button, message, Skeleton } from 'antd';
+import { Table, message } from 'antd';
 import { SearchOutlined, CheckCircleFilled, CopyOutlined, StopOutlined } from '@ant-design/icons';
-import './signature.css';
-
-const { Text } = Typography;
+import styles from './signature.module.scss';
 
 interface SignatureResult {
   hash: string;
@@ -49,8 +47,7 @@ export default function SignatureLookup() {
 
       if (data.ok) {
         const flattened: SignatureResult[] = [];
-        
-        // Process functions
+
         if (data.result.function) {
           Object.entries(data.result.function).forEach(([hash, sigs]: [string, any]) => {
             sigs.forEach((sig: any) => {
@@ -59,13 +56,12 @@ export default function SignatureLookup() {
                 name: sig.name,
                 filtered: sig.filtered,
                 hasVerifiedContract: sig.hasVerifiedContract,
-                type: 'function'
+                type: 'function',
               });
             });
           });
         }
 
-        // Process events
         if (data.result.event) {
           Object.entries(data.result.event).forEach(([hash, sigs]: [string, any]) => {
             sigs.forEach((sig: any) => {
@@ -74,7 +70,7 @@ export default function SignatureLookup() {
                 name: sig.name,
                 filtered: sig.filtered,
                 hasVerifiedContract: sig.hasVerifiedContract,
-                type: 'event'
+                type: 'event',
               });
             });
           });
@@ -97,164 +93,127 @@ export default function SignatureLookup() {
       title: 'Type',
       dataIndex: 'type',
       key: 'type',
-      width: 120,
+      width: 100,
       render: (type: string) => (
-        <Tag 
-          bordered={false} 
-          style={{ 
-            textTransform: 'capitalize', 
-            borderRadius: '6px',
-            padding: '4px 10px',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: type === 'function' ? '#3b82f6' : '#8b5cf6', // Blue-500 : Violet-500
-            background: type === 'function' ? '#eff6ff' : '#f5f3ff', // Blue-50 : Violet-50
-            display: 'inline-flex',
-            alignItems: 'center',
-            lineHeight: 1
-          }}
-        >
+        <span className={`${styles.tag} ${type === 'function' ? styles.fn : styles.event}`}>
           {type}
-        </Tag>
+        </span>
       ),
     },
     {
-      title: 'Name',
+      title: 'Signature',
       dataIndex: 'name',
       key: 'name',
-      width: 450,
       render: (name: string) => (
-        <Text 
-          copyable={{ icon: <CopyOutlined style={{ color: '#94a3b8', fontSize: '14px' }} /> }} 
-          style={{ 
-            fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace', 
-            fontSize: '14px', 
-            color: '#1e293b', // Slate-800
-            fontWeight: 500
-          }}
-        >
-          {name}
-        </Text>
+        <span className={styles.mono}>{name}</span>
       ),
     },
     {
       title: 'Hash',
       dataIndex: 'hash',
       key: 'hash',
+      width: 320,
       render: (hash: string, record: SignatureResult) => (
-        <Flex align="center" gap="middle">
+        <div className={styles.hash}>
           {record.hasVerifiedContract ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: '#dcfce7' }}>
-              <CheckCircleFilled style={{ color: '#16a34a', fontSize: '14px' }} />
-            </div>
+            <span className={styles.verifiedBadge}>
+              <CheckCircleFilled />
+            </span>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', background: '#f1f5f9' }}>
-              <StopOutlined style={{ color: '#94a3b8', fontSize: '14px' }} />
-            </div>
+            <span className={styles.unverifiedBadge}>
+              <StopOutlined />
+            </span>
           )}
-          <Text 
-            copyable={{ icon: <CopyOutlined style={{ color: '#94a3b8', fontSize: '14px' }} /> }} 
-            style={{ 
-              fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace', 
-              fontSize: '13px', 
-              color: '#64748b' // Slate-500
+          <span>{hash}</span>
+          <CopyOutlined
+            className={styles.copyIcon}
+            onClick={() => {
+              navigator.clipboard.writeText(hash);
+              message.success('Copied');
             }}
-          >
-            {hash}
-          </Text>
-        </Flex>
+          />
+        </div>
       ),
     },
   ];
 
   return (
-    <div className="signature-lookup-container">
-      <div 
-        style={{ 
-          maxWidth: '600px', 
-          width: '100%',
-          margin: '0 auto 32px auto', 
-          marginTop: searched ? '0' : '20vh',
-          transition: 'all 0.5s ease-in-out'
-        }}
-      >
-        <Card 
-          styles={{ body: { padding: 4 } }}
-          style={{ 
-            borderRadius: '12px', 
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05)',
-            overflow: 'hidden',
-            background: 'white'
-          }}
-        >
-          <div style={{ display: 'flex', width: '100%', alignItems: 'center' }}>
-            <Input 
-              size="large"
-              placeholder="Search by function name (e.g. transfer) or hash (0x...)" 
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              onPressEnter={handleSearch}
-              prefix={<SearchOutlined style={{ color: '#94a3b8', fontSize: '16px', margin: '0 4px' }} />}
-              style={{ 
-                border: 'none', 
-                boxShadow: 'none',
-                height: '48px',
-                fontSize: '14px',
-                backgroundColor: 'transparent',
-                flex: 1
-              }}
-            />
-            <Button 
-                type="primary" 
-                size="large" 
-                onClick={handleSearch} 
-                loading={loading}
-                style={{ 
-                  width: '100px', 
-                  height: '48px', 
-                  borderRadius: '8px', 
-                  background: '#1677ff', // Indigo-600
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)',
-                  border: 'none',
-                  margin: '0'
-                }}
-            >
-              Search
-            </Button>
-          </div>
-        </Card>
-      </div>
-
-      <div style={{ minHeight: 0 }}>
-        {searched && !loading && (
-          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px' }}>
-            <Text style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>
-              Found {results.length} signatures
-            </Text>
-          </div>
-        )}
-        
-        <div className="table-wrapper">
-          {loading ? (
-            <div style={{ padding: '40px' }}>
-              <Skeleton active paragraph={{ rows: 6 }} />
-            </div>
-          ) : (
-            <Table 
-              dataSource={results} 
-              columns={columns} 
-              rowKey={(record) => `${record.hash}-${record.name}`}
-              pagination={results.length > 50 ? { pageSize: 50, showSizeChanger: false, size: 'small' } : false}
-              locale={{ emptyText: searched ? 'No signatures found' : 'Enter a search term above' }}
-              className="styled-signature-table"
-              size="middle"
-              tableLayout="fixed"
-            />
-          )}
+    <div className={`${styles.page} ${!searched ? styles.pageIdle : ''}`}>
+      <div className={styles.searchWrapper}>
+        <div className={styles.searchCard}>
+          <SearchOutlined className={styles.searchIcon} />
+          <input
+            className={styles.searchInput}
+            placeholder="Search by function name or hex selector..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          />
+          <button
+            className={styles.searchBtn}
+            onClick={handleSearch}
+            disabled={loading}
+          >
+            {loading ? (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.spin}>
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                  </svg>
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </>
+              )}
+          </button>
         </div>
       </div>
+
+      {searched && (
+        <div className={styles.results}>
+          {!loading && (
+            <p className={styles.resultCount}>
+              {results.length} signature{results.length !== 1 ? 's' : ''} found
+            </p>
+          )}
+
+          <div className={styles.tableWrapper}>
+            {loading ? (
+              <table className={styles.skeletonTable}>
+                <thead>
+                  <tr>
+                    <th style={{ width: 50 }}>Type</th>
+                    <th style={{ width: 400 }}>Signature</th>
+                    <th style={{ width: 400 }}>Hash</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <tr key={i}>
+                      <td><div className={styles.skeletonLine} style={{ width: 50 }} /></td>
+                      <td><div className={styles.skeletonLine} style={{ width: 400 }} /></td>
+                      <td><div className={styles.skeletonLine} style={{ width: 400 }} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : results.length > 0 ? (
+              <Table
+                dataSource={results}
+                columns={columns}
+                rowKey={(record) => `${record.hash}-${record.name}`}
+                pagination={results.length > 50 ? { pageSize: 50, showSizeChanger: false, size: 'small' } : false}
+                size="middle"
+              />
+            ) : (
+              <div className={styles.empty}>No signatures found</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

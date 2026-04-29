@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import TraceInput from '@/components/TraceInput';
-import SimulateInput from '@/components/SimulateInput';
+import { TraceFields, SimulateFields } from '@/components/FormFields';
 import Terminal, { TerminalHandle } from '@/components/Terminal';
 import { generateSimulationTest } from '@/lib/templates';
-import { Button, Radio, Row, Col, Flex } from 'antd';
-import { PlayCircleOutlined, StopOutlined, LoadingOutlined } from '@ant-design/icons';
+import styles from './simulator.module.scss';
 
 type Tab = 'TRACE' | 'SIMULATE';
 
@@ -28,12 +26,12 @@ export default function Home() {
   const [calldata, setCalldata] = useState('');
   const [to, setTo] = useState('');
   const [msgValue, setMsgValue] = useState('0');
+  const [shouldForkBlock, setShouldForkBlock] = useState(false);
+  const [blockNumber, setBlockNumber] = useState('0');
 
   const [scriptContent, setScriptContent] = useState('');
-
   const [elapsedTime, setElapsedTime] = useState(0);
   const startTimeRef = useRef<number>(0);
-
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -59,32 +57,22 @@ export default function Home() {
     terminalRef.current?.write('\x1b[2J\x1b[3J\x1b[H');
   }, [activeTab]);
 
-  // Update script preview when inputs change
   useEffect(() => {
     if (activeTab === 'SIMULATE') {
       const content = generateSimulationTest({
-        rpcUrl,
-        sender,
-        to,
-        calldata,
-        amount,
-        msgValue,
-        shouldDealToken,
-        tokenAddress,
-        spender
+        rpcUrl, sender, to, calldata, amount, msgValue, blockNumber,
+        shouldDealToken, tokenAddress, spender,
       });
       setScriptContent(content);
     }
-  }, [activeTab, sender, shouldDealToken, tokenAddress, spender, amount, calldata, to, msgValue, rpcUrl, txHash]);
+  }, [activeTab, sender, shouldDealToken, tokenAddress, spender, amount, calldata, to, msgValue, rpcUrl]);
 
   const handleRun = async () => {
     if (isRunning) return;
     setIsRunning(true);
-    
-    // Clear terminal
     terminalRef.current?.clear();
     terminalRef.current?.write('\x1b[2J\x1b[3J\x1b[H');
-    
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -94,12 +82,12 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: activeTab,
-          inputs: { 
-            rpcUrl, txHash, sender, shouldDealToken, 
-            tokenAddress, spender, amount, calldata, to, msgValue, scriptContent 
-          }
+          inputs: {
+            rpcUrl, txHash, sender, shouldDealToken,
+            tokenAddress, spender, amount, calldata, to, msgValue, scriptContent,
+          },
         }),
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       const reader = response.body?.getReader();
@@ -109,12 +97,11 @@ export default function Home() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const text = decoder.decode(value);
-        terminalRef.current?.write(text);
+        terminalRef.current?.write(decoder.decode(value));
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        terminalRef.current?.write('\x1b[31mProcess cancelled by user.\x1b[0m\n');
+        terminalRef.current?.write('\x1b[31mCancelled.\x1b[0m\n');
       } else {
         terminalRef.current?.write(`\r\nError: ${error}\r\n`);
       }
@@ -125,77 +112,86 @@ export default function Home() {
   };
 
   const handleCancel = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+    abortControllerRef.current?.abort();
   };
 
   return (
-    <div style={{ padding: '24px', height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
-      <Flex justify="space-between" align="center" style={{ marginBottom: 16 }}>
-        <Radio.Group 
-          value={activeTab} 
-          onChange={(e) => setActiveTab(e.target.value)} 
-          buttonStyle="solid"
-        >
-          <Radio.Button value="TRACE">Trace Transaction</Radio.Button>
-          <Radio.Button value="SIMULATE">Simulate Transaction</Radio.Button>
-        </Radio.Group>
-      </Flex>
+    <div className={styles.page}>
+      <div className={styles.toolbar}>
+        <div className={styles.tabs}>
+          <button
+            className={`${styles.tab} ${activeTab === 'TRACE' ? styles.active : ''}`}
+            onClick={() => setActiveTab('TRACE')}
+          >
+            Trace
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === 'SIMULATE' ? styles.active : ''}`}
+            onClick={() => setActiveTab('SIMULATE')}
+          >
+            Simulate
+          </button>
+        </div>
+        {isRunning && <span className={styles.timer}>{formatTime(elapsedTime)}</span>}
+      </div>
 
-      <Row gutter={24} style={{ flex: 1, overflow: 'hidden' }}>
-        {/* Left Column: Inputs */}
-        <Col span={10} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: 8, paddingBottom: 16 }}>
-            {activeTab === 'TRACE' ? (
-              <TraceInput 
-                rpcUrl={rpcUrl} setRpcUrl={setRpcUrl}
-                txHash={txHash} setTxHash={setTxHash}
-              />
-            ) : (
-              <SimulateInput 
-                rpcUrl={rpcUrl} setRpcUrl={setRpcUrl}
-                sender={sender} setSender={setSender}
-                shouldDealToken={shouldDealToken} setShouldDealToken={setShouldDealToken}
-                tokenAddress={tokenAddress} setTokenAddress={setTokenAddress}
-                spender={spender} setSpender={setSpender}
-                amount={amount} setAmount={setAmount}
-                calldata={calldata} setCalldata={setCalldata}
-                to={to} setTo={setTo}
-                msgValue={msgValue} setMsgValue={setMsgValue}
-              />
+      <div className={styles.workspace}>
+        <div className={styles.inputPanel}>
+          {activeTab === 'TRACE' ? (
+            <TraceFields
+              rpcUrl={rpcUrl} setRpcUrl={setRpcUrl}
+              txHash={txHash} setTxHash={setTxHash}
+            />
+          ) : (
+            <SimulateFields
+              rpcUrl={rpcUrl} setRpcUrl={setRpcUrl}
+              sender={sender} setSender={setSender}
+              shouldDealToken={shouldDealToken} setShouldDealToken={setShouldDealToken}
+              tokenAddress={tokenAddress} setTokenAddress={setTokenAddress}
+              spender={spender} setSpender={setSpender}
+              amount={amount} setAmount={setAmount}
+              calldata={calldata} setCalldata={setCalldata}
+              to={to} setTo={setTo}
+              msgValue={msgValue} setMsgValue={setMsgValue}
+              shouldForkBlock={shouldForkBlock} setShouldForkBlock={setShouldForkBlock}
+              blockNumber={blockNumber} setBlockNumber={setBlockNumber}
+            />
+          )}
+
+          <div className={styles.actions}>
+            <button
+              className={styles.runBtn}
+              onClick={handleRun}
+              disabled={isRunning}
+            >
+              {isRunning ? (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.spin}>
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                  </svg>
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </>
+              )}
+            </button>
+            {isRunning && (
+              <button className={styles.cancelBtn} onClick={handleCancel} title="Cancel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                </svg>
+              </button>
             )}
-            <div style={{ marginTop: 16 }}>
-              <Flex gap="small">
-                <Button 
-                  type="primary" 
-                  size="large" 
-                  icon={isRunning ? <LoadingOutlined /> : <PlayCircleOutlined />} 
-                  onClick={handleRun}
-                  disabled={isRunning}
-                  style={{ flex: 1, height: '48px', fontSize: '16px' }}
-                >
-                  {isRunning ? `Processing... ${formatTime(elapsedTime)}` : 'Run'}
-                </Button>
-                {isRunning && (
-                  <Button 
-                    danger 
-                    size="large" 
-                    icon={<StopOutlined />} 
-                    onClick={handleCancel}
-                    style={{ height: '48px', width: '48px' }}
-                  />
-                )}
-              </Flex>
-            </div>
           </div>
-        </Col>
+        </div>
 
-        {/* Right Column: Terminal */}
-        <Col span={14} style={{ height: '100%' }}>
+        <div className={styles.outputPanel}>
           <Terminal ref={terminalRef} />
-        </Col>
-      </Row>
+        </div>
+      </div>
     </div>
   );
 }

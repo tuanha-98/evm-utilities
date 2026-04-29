@@ -6,6 +6,7 @@ export interface SimulationInputs {
   calldata: string;
   amount: string;
   msgValue: string;
+  blockNumber: string;
   shouldDealToken: boolean;
   tokenAddress: string;
   spender: string;
@@ -19,6 +20,7 @@ export const generateSimulationTest = (inputs: SimulationInputs): string => {
     calldata,
     amount,
     msgValue,
+    blockNumber,
     shouldDealToken,
     tokenAddress,
     spender,
@@ -41,6 +43,7 @@ export const generateSimulationTest = (inputs: SimulationInputs): string => {
   const safeTo = to || 'address(0)';
   const safeValue = msgValue || '0';
   const safeCalldata = calldata || '';
+  const safeBlockNumber = blockNumber || '0';
 
   return `// SPDX-License-Identifier: UNLICENSED
     pragma solidity ^0.8.13;
@@ -55,6 +58,9 @@ export const generateSimulationTest = (inputs: SimulationInputs): string => {
     contract SimulationTest is Test {
         function setUp() public {
           vm.selectFork(vm.createFork("${rpcUrl}"));
+          if (${safeBlockNumber} != 0) {
+            vm.rollFork(${safeBlockNumber});
+          }
         }
 
         function testSimulation() public {

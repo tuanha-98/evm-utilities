@@ -1,0 +1,94 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: $nav-height;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  @include flex-between;
+  padding: 0 $space-8;
+}
+
+.logo {
+  font-size: $text-base;
+  font-weight: $font-bold;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  font-family: $font-mono;
+
+  span {
+    color: var(--accent);
+    font-weight: $font-normal;
+  }
+}
+
+.navLinks {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-full;
+  padding: 3px;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.navLink {
+  padding: $space-2 $space-5;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  color: var(--text-tertiary);
+  border-radius: $radius-full;
+  transition: all $transition-fast;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+
+  &.active {
+    color: var(--accent-text);
+    background: var(--accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.themeToggle {
+  @include flex-center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-default);
+  border-radius: $radius-full;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: var(--text-primary);
+    border-color: var(--accent);
+    background: var(--accent-subtle);
+  }
+}
+
+.content {
+  flex: 1;
+}

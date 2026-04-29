@@ -3,42 +3,95 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
+import {
+  getClientIp,
+  checkRateLimit,
+  acquireJob,
+  releaseJob,
+  PROCESS_TIMEOUT_MS,
+} from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
-function copyRecursiveSync(src: string, dest: string, excludes: string[] = []) {
-  const exists = fs.existsSync(src);
-  const stats = exists && fs.statSync(src);
-  const isDirectory = stats && stats.isDirectory();
+// --- PRE-WARM: Symlink-based workspace pool ---
+// Instead of copying 2.8MB per request, use symlinks for immutable lib/
+// and only write the mutable test file.
 
-  const basename = path.basename(src);
-  if (excludes.includes(basename)) return;
+const projectRoot = process.cwd();
+const sourceFoundryDir = path.join(projectRoot, 'foundry');
 
-  if (isDirectory) {
-    if (!fs.existsSync(dest)) {
-      fs.mkdirSync(dest, { recursive: true });
-      // Ensure directory is writable
-      try {
-        fs.chmodSync(dest, 0o777);
-      } catch (e) {
-        console.warn(`Failed to chmod directory ${dest}`, e);
-      }
+function setupLightWorkspace(sessionId: string, scriptContent?: string): string {
+  const tempDir = path.join(os.tmpdir(), `foundry-${sessionId}`);
+
+  // Create minimal directory structure
+  fs.mkdirSync(path.join(tempDir, 'test'), { recursive: true });
+  fs.mkdirSync(path.join(tempDir, 'src'), { recursive: true });
+  fs.mkdirSync(path.join(tempDir, 'script'), { recursive: true });
+  fs.mkdirSync(path.join(tempDir, '.home'), { recursive: true });
+
+  // Symlink immutable directories (lib is 1.2MB, read-only)
+  const libSource = path.join(sourceFoundryDir, 'lib');
+  const libDest = path.join(tempDir, 'lib');
+  if (!fs.existsSync(libDest)) {
+    fs.symlinkSync(libSource, libDest, 'dir');
+  }
+
+  // Copy only small config files (4KB total)
+  const configFiles = ['foundry.toml'];
+  for (const file of configFiles) {
+    const src = path.join(sourceFoundryDir, file);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(tempDir, file));
     }
-    fs.readdirSync(src).forEach((childItemName) => {
-      copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName), excludes);
-    });
-  } else {
-    fs.copyFileSync(src, dest);
-    // Ensure destination file is writable
-    try {
-      fs.chmodSync(dest, 0o666);
-    } catch (e) {
-      console.warn(`Failed to chmod ${dest}`, e);
-    }
+  }
+
+  // Copy src/Counter.sol (needed for forge compilation context)
+  const counterSrc = path.join(sourceFoundryDir, 'src', 'Counter.sol');
+  if (fs.existsSync(counterSrc)) {
+    fs.copyFileSync(counterSrc, path.join(tempDir, 'src', 'Counter.sol'));
+  }
+
+  // Write simulation test if provided
+  if (scriptContent) {
+    fs.writeFileSync(path.join(tempDir, 'test', 'Simulation.t.sol'), scriptContent);
+  }
+
+  return tempDir;
+}
+
+function cleanupWorkspace(tempDir: string) {
+  try {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  } catch (e) {
+    console.error('Failed to cleanup temp dir', e);
   }
 }
 
 export async function POST(req: NextRequest) {
+  // --- RATE LIMITING ---
+  const ip = getClientIp(
+    req.headers.get('x-forwarded-for'),
+    req.headers.get('x-real-ip')
+  );
+  const rateCheck = checkRateLimit(ip);
+  if (!rateCheck.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil(rateCheck.retryAfterMs / 1000)) },
+      }
+    );
+  }
+
+  // --- CONCURRENCY LIMITING ---
+  if (!acquireJob()) {
+    return NextResponse.json(
+      { error: 'Server is busy. Too many concurrent requests. Please retry shortly.' },
+      { status: 503 }
+    );
+  }
+
   const body = await req.json();
   const { type, inputs } = body;
   
@@ -55,10 +108,12 @@ export async function POST(req: NextRequest) {
 
       let child: any = null;
       let isAborted = false;
+      let timeoutHandle: NodeJS.Timeout | null = null;
 
       // Handle client disconnect explicitly
       req.signal.addEventListener('abort', () => {
         isAborted = true;
+        if (timeoutHandle) clearTimeout(timeoutHandle);
         if (child) {
           try {
             child.kill('SIGTERM'); 
@@ -66,40 +121,25 @@ export async function POST(req: NextRequest) {
             console.error('Failed to kill child process:', e);
           }
         }
+        releaseJob();
         try { controller.close(); } catch {}
       });
 
       try {
         let args: string[] = [];
         let command = '';
+        let tempDir = '';
         
         // --- 1. SETUP ENVIRONMENT ---
-        const projectRoot = process.cwd();
-        
-        // For Vercel/Production: Use /tmp to allow writing
-        const sessionId = Math.random().toString(36).substring(7);
-        const tempDir = path.join(os.tmpdir(), `foundry-${sessionId}`);
-        
-        // Copy the 'foundry' template from the project to the temp dir
-        const sourceFoundryDir = path.join(projectRoot, 'foundry');
-        
         // Safety check: ensure source exists
         if (!fs.existsSync(sourceFoundryDir)) {
           send('Error: Source foundry directory not found.\n');
+          releaseJob();
           controller.close();
           return;
         }
 
-        // Copy everything to temp (expensive but necessary for isolation and read-only fs)
-        // Optimization: In a real app, maybe only copy what's needed or pre-warm /tmp
-        copyRecursiveSync(sourceFoundryDir, tempDir, ['out', 'cache', 'broadcast', '.git']);
-
-        const foundryDir = tempDir;
-
         // --- 2. LOCATE BINARIES ---
-        // Priority 1: Local 'bin' folder (deployed with app)
-        // Priority 2: User's home .foundry (local dev)
-        // Priority 3: Global PATH
         const projectBin = path.join(projectRoot, 'bin');
         const homeDir = process.env.HOME || '/root';
         const userBin = path.join(homeDir, '.foundry/bin');
@@ -119,61 +159,57 @@ export async function POST(req: NextRequest) {
         if (type === 'TRACE') {
           if (!inputs.txHash || !inputs.rpcUrl) {
             send('Error: Missing Tx Hash or RPC URL\n');
+            releaseJob();
             controller.close();
             return;
           }
+          // Trace doesn't need a workspace — cast runs standalone
           command = castBin;
-          args = ['run', inputs.txHash, '--rpc-url', inputs.rpcUrl, '--color', 'always'];
+          args = ['run', inputs.txHash, '--rpc-url', inputs.rpcUrl, '--quick', '--color', 'always'];
           
           send(`> cast ${args.join(' ')}\r\n\r\n`);
 
         } else if (type === 'SIMULATE') {
-          // Validation
           const required = ['sender', 'to', 'calldata'];
           const missing = required.filter((field: string) => !inputs[field]);
           if (missing.length > 0) {
             send(`Error: Missing required fields: ${missing.join(', ')}\n`);
+            releaseJob();
             controller.close();
             return;
           }
           
-          // Write Test File relative to the TEMP foundry dir
-          const testFile = path.join(foundryDir, 'test', 'Simulation.t.sol');
-          
-          // Ensure directory exists (it should after copy, but being safe)
-          if (!fs.existsSync(path.dirname(testFile))) {
-            fs.mkdirSync(path.dirname(testFile), { recursive: true });
-          }
-
-          fs.writeFileSync(testFile, inputs.scriptContent);
+          // Lightweight workspace: symlink lib/, copy only config + test file
+          const sessionId = Math.random().toString(36).substring(7);
+          tempDir = setupLightWorkspace(sessionId, inputs.scriptContent);
           
           command = forgeBin;
-          // -vvvv for detailed traces
           args = ['test', '--mt', 'testSimulation', '-vvvv', '--color', 'always'];
           
           send(`> forge ${args.join(' ')}\r\n\r\n`);
         } else {
           send('Error: Unknown operation type\n');
+          releaseJob();
           controller.close();
           return;
         }
 
         // --- 4. EXECUTE ---
-        // Create a fake home directory for foundry to store its cache/config
-        const fakeHome = path.join(tempDir, '.home');
-        fs.mkdirSync(fakeHome, { recursive: true });
+        const cwd = tempDir || projectRoot;
+        const fakeHome = tempDir ? path.join(tempDir, '.home') : path.join(os.tmpdir(), '.foundry-home');
+        if (!fs.existsSync(fakeHome)) fs.mkdirSync(fakeHome, { recursive: true });
 
         child = spawn(command, args, {
-          cwd: foundryDir,
+          cwd,
           env: {
             ...process.env,
-            // Ensure the binaries are in PATH if calling by name
-            PATH: `${projectBin}:${userBin}:${process.env.PATH}`, 
-            FORCE_COLOR: '1', // Force color for standard spawn
-            TERM: 'xterm-256color', // Emulate a terminal
-            COLUMNS: '100', // Force width for progress bars
-            LINES: '24',    // Force height
-            HOME: fakeHome // Override HOME so foundry writes to tmp
+            PATH: `${projectBin}:${userBin}:${process.env.PATH}`,
+            FORCE_COLOR: '1',
+            TERM: 'xterm-256color',
+            COLUMNS: '100',
+            LINES: '24',
+            HOME: fakeHome,
+            FOUNDRY_FUZZ_RUNS: '1',
           }
         });
 
@@ -184,28 +220,38 @@ export async function POST(req: NextRequest) {
           if (!isAborted) send(data.toString());
         });
 
+        // --- 5. PROCESS TIMEOUT ---
+        // Trace is RPC-bound and slower; give it more time
+        const timeout = type === 'TRACE' ? PROCESS_TIMEOUT_MS * 2.5 : PROCESS_TIMEOUT_MS;
+        timeoutHandle = setTimeout(() => {
+          if (child && !isAborted) {
+            send('\r\n\x1b[31mProcess timed out. Killing...\x1b[0m\r\n');
+            child.kill('SIGKILL');
+          }
+        }, timeout);
+
         child.on('error', (err: any) => {
           if (isAborted) return;
           send(`\r\nFailed to start subprocess: ${err.message}\r\n`);
+          releaseJob();
         });
 
         child.on('close', (code: any) => {
+          if (timeoutHandle) clearTimeout(timeoutHandle);
           if (!isAborted) {
             send(`\r\nProcess exited with code ${code}`);
+            releaseJob();
             try { controller.close(); } catch {}
           }
           
-          // CLEANUP: Remove temp dir
-          try {
-              fs.rmSync(tempDir, { recursive: true, force: true });
-          } catch (e) {
-              console.error("Failed to cleanup temp dir", e);
-          }
+          // CLEANUP: Remove temp dir (only for simulate)
+          if (tempDir) cleanupWorkspace(tempDir);
         });
 
       } catch (err: any) {
         if (!isAborted) {
           send(`\r\nSystem Error: ${err.message}`);
+          releaseJob();
           try { controller.close(); } catch {}
         }
       }

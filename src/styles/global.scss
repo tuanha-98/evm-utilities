@@ -1,0 +1,191 @@
+// ============================================
+// Global Styles
+// ============================================
+
+@use './variables' as *;
+
+// ============================================
+// CSS Custom Properties (Theme-aware)
+// ============================================
+
+:root,
+[data-theme='light'] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f4f5;
+  --bg-tertiary: #e8e8ea;
+  --bg-inverse: #141414;
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #a1a1aa;
+  --border-default: #d4d4d8;
+  --border-subtle: #e4e4e7;
+  --surface-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --accent: #0d9488;
+  --accent-hover: #0f766e;
+  --accent-subtle: #f0fdfa;
+  --accent-text: #ffffff;
+}
+
+[data-theme='dark'] {
+  --bg-primary: #141414;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #1f1f1f;
+  --bg-inverse: #f4f4f5;
+  --text-primary: #fafafa;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #636363;
+  --border-default: #2a2a2a;
+  --border-subtle: #1f1f1f;
+  --surface-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --accent: #5eead4;
+  --accent-hover: #2dd4bf;
+  --accent-subtle: rgba(94, 234, 212, 0.1);
+  --accent-text: #130a0d;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: $font-sans;
+  font-size: $text-sm;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  line-height: 1.5;
+  min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+code, pre {
+  font-family: $font-mono;
+}
+
+// Scrollbar
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $gray-300;
+  border-radius: 3px;
+
+  &:hover {
+    background: $gray-400;
+  }
+}
+
+// Selection
+::selection {
+  background: rgba($primary, 0.15);
+  color: $text-primary;
+}
+
+// Ant Design overrides for consistency
+.ant-input,
+.ant-input-affix-wrapper {
+  font-family: $font-mono !important;
+  border-radius: $radius-md !important;
+}
+
+.ant-btn-primary {
+  background: $primary !important;
+  border-color: $primary !important;
+  border-radius: $radius-md !important;
+  font-weight: $font-medium !important;
+  box-shadow: none !important;
+
+  &:hover {
+    background: $primary-dark !important;
+    border-color: $primary-dark !important;
+  }
+}
+
+.ant-card {
+  border-radius: $radius-lg !important;
+  border-color: $border-default !important;
+}
+
+.ant-table {
+  font-size: $text-sm !important;
+}
+
+// ============================================
+// Dark mode overrides
+// ============================================
+
+[data-theme='dark'] {
+  ::-webkit-scrollbar-thumb {
+    background: #404040;
+
+    &:hover {
+      background: #525252;
+    }
+  }
+
+  .ant-table-wrapper,
+  .ant-table {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .ant-table-thead > tr > th {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-bottom-color: var(--border-default) !important;
+  }
+
+  .ant-table-tbody > tr > td {
+    border-bottom-color: var(--border-subtle) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .ant-table-tbody > tr:hover > td {
+    background: var(--bg-tertiary) !important;
+  }
+
+  .ant-pagination {
+    color: var(--text-secondary) !important;
+  }
+
+  .ant-input,
+  .ant-input-affix-wrapper {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-default) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .ant-card {
+    background: var(--bg-primary) !important;
+    border-color: var(--border-default) !important;
+  }
+
+  .ant-message-notice-content {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+  }
+}

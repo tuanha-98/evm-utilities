@@ -1,0 +1,195 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.page {
+  min-height: calc(100vh - $nav-height);
+  padding: $space-8;
+  @include flex-col;
+  align-items: center;
+  transition: padding-top $transition-slow;
+}
+
+.pageIdle {
+  padding-top: 20vh;
+}
+
+.searchWrapper {
+  width: 100%;
+  max-width: 560px;
+  margin-bottom: $space-8;
+}
+
+.searchCard {
+  display: flex;
+  align-items: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-full;
+  padding: $space-1;
+  padding-left: $space-5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+  }
+}
+
+.searchIcon {
+  color: var(--text-tertiary);
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  height: 40px;
+  border: none;
+  outline: none;
+  font-size: $text-xs;
+  font-family: $font-mono;
+  color: var(--text-primary);
+  background: transparent;
+  padding: 0 $space-3;
+
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+}
+
+.searchBtn {
+  @include btn-primary;
+  height: 36px;
+  border-radius: $radius-full;
+  padding: 0 $space-5;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  flex-shrink: 0;
+}
+
+.results {
+  width: 100%;
+  max-width: $content-max-width;
+}
+
+.resultCount {
+  font-size: $text-sm;
+  color: var(--text-secondary);
+  margin-bottom: $space-4;
+}
+
+.tableWrapper {
+  @include surface;
+  overflow: hidden;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: $space-1 $space-2;
+  border-radius: $radius-sm;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  text-transform: capitalize;
+
+  &.fn {
+    color: var(--accent);
+    background: var(--accent-subtle);
+  }
+
+  &.event {
+    color: $info;
+    background: $info-subtle;
+  }
+}
+
+.mono {
+  font-family: $font-mono;
+  font-size: $text-sm;
+  color: var(--text-primary);
+}
+
+.hash {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-family: $font-mono;
+  font-size: $text-xs;
+  color: var(--text-secondary);
+}
+
+.verifiedBadge {
+  @include flex-center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: $success-subtle;
+  color: $success;
+  font-size: 11px;
+}
+
+.unverifiedBadge {
+  @include flex-center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.copyIcon {
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: color $transition-fast;
+
+  &:hover {
+    color: var(--accent);
+  }
+}
+
+.skeleton {
+  padding: $space-8;
+}
+
+.skeletonTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+
+  th {
+    text-align: left;
+    padding: $space-3 $space-4;
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  td {
+    padding: $space-4 $space-4;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+}
+
+.skeletonLine {
+  height: 14px;
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--border-default) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: $radius-sm;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.empty {
+  padding: $space-12;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: $text-sm;
+}

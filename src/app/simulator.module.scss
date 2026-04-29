@@ -1,0 +1,114 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+.page {
+  height: calc(100vh - $nav-height);
+  padding: $space-5;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.toolbar {
+  @include flex-between;
+  padding: 0 $space-1;
+}
+
+.tabs {
+  display: flex;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-full;
+  padding: 3px;
+}
+
+.tab {
+  @include btn-base;
+  height: 28px;
+  padding: 0 $space-4;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: $radius-full;
+  letter-spacing: 0.01em;
+
+  &.active {
+    background: var(--accent);
+    color: var(--accent-text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: $space-3;
+  min-height: 0;
+
+  @include tablet {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
+.inputPanel {
+  @include flex-col;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-xl;
+  padding: $space-5;
+  overflow-y: auto;
+  gap: $space-4;
+}
+
+.outputPanel {
+  min-height: 0;
+}
+
+.actions {
+  display: flex;
+  gap: $space-2;
+  margin-top: auto;
+  padding-top: $space-4;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.runBtn {
+  @include btn-primary;
+  flex: 1;
+  height: 40px;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  border-radius: $radius-full;
+  gap: $space-2;
+  letter-spacing: 0.02em;
+}
+
+.cancelBtn {
+  @include btn-danger;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: $radius-full;
+}
+
+.timer {
+  font-family: $font-mono;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  padding: $space-1 $space-3;
+  border-radius: $radius-full;
+  border: 1px solid var(--border-subtle);
+}
+
+.spin {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

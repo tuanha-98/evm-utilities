@@ -1,0 +1,104 @@
+'use client';
+
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import '@xterm/xterm/css/xterm.css';
+import styles from './Terminal.module.scss';
+
+export interface TerminalHandle {
+  write: (data: string) => void;
+  clear: () => void;
+}
+
+const Terminal = forwardRef<TerminalHandle, {}>((_, ref) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const xtermRef = useRef<any>(null);
+  const fitAddonRef = useRef<any>(null);
+
+  useImperativeHandle(ref, () => ({
+    write: (data: string) => {
+      xtermRef.current?.write(data);
+    },
+    clear: () => {
+      xtermRef.current?.reset();
+      fitAddonRef.current?.fit();
+    },
+  }));
+
+  useEffect(() => {
+    let resizeObserver: ResizeObserver | undefined;
+    let disposed = false;
+
+    const initTerminal = async () => {
+      if (!containerRef.current || xtermRef.current) return;
+
+      const { Terminal: XTerm } = await import('@xterm/xterm');
+      const { FitAddon } = await import('@xterm/addon-fit');
+
+      if (disposed) return;
+
+      const term = new XTerm({
+        theme: {
+          background: '#0a0a0a',
+          foreground: '#e5e5e5',
+          cursor: 'transparent',
+          selectionBackground: 'rgba(37, 99, 235, 0.3)',
+        },
+        fontFamily: '"JetBrains Mono", "SF Mono", "Fira Code", monospace',
+        fontSize: 12,
+        lineHeight: 1.4,
+        cursorBlink: false,
+        convertEol: true,
+        rows: 10,
+      });
+
+      const fitAddon = new FitAddon();
+      term.loadAddon(fitAddon);
+      term.open(containerRef.current!);
+
+      xtermRef.current = term;
+      fitAddonRef.current = fitAddon;
+
+      // Delay fit until the browser has laid out the container
+      requestAnimationFrame(() => {
+        if (!disposed) {
+          fitAddon.fit();
+        }
+      });
+
+      resizeObserver = new ResizeObserver(() => {
+        if (!disposed) {
+          fitAddon.fit();
+        }
+      });
+      resizeObserver.observe(containerRef.current!);
+    };
+
+    initTerminal();
+
+    return () => {
+      disposed = true;
+      resizeObserver?.disconnect();
+      xtermRef.current?.dispose();
+      xtermRef.current = null;
+      fitAddonRef.current = null;
+    };
+  }, []);
+
+  return (
+    <div className={styles.terminal}>
+      <div className={styles.header}>
+        <div className={`${styles.dot} ${styles.red}`} />
+        <div className={`${styles.dot} ${styles.yellow}`} />
+        <div className={`${styles.dot} ${styles.green}`} />
+        <span className={styles.title}>Terminal</span>
+      </div>
+      <div className={styles.body}>
+        <div ref={containerRef} style={{ width: '100%', height: '100%', flex: 1 }} />
+      </div>
+    </div>
+  );
+});
+
+Terminal.displayName = 'Terminal';
+
+export default Terminal;
