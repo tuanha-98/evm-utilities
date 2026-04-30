@@ -14,8 +14,14 @@
   height: $nav-height;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-subtle);
-  @include flex-between;
-  padding: 0 $space-8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 $space-5;
+
+  @include mobile {
+    padding: 0 $space-3;
+  }
 }
 
 .logo {
@@ -24,6 +30,7 @@
   color: var(--text-primary);
   letter-spacing: -0.03em;
   font-family: $font-mono;
+  flex-shrink: 0;
 
   span {
     color: var(--accent);
@@ -42,12 +49,20 @@
   border: 1px solid var(--border-subtle);
   border-radius: $radius-full;
   padding: 3px;
+
+  @include mobile {
+    position: static;
+    transform: none;
+    padding: 2px;
+    gap: 1px;
+  }
 }
 
 .navRight {
   display: flex;
   align-items: center;
   gap: $space-3;
+  flex-shrink: 0;
 }
 
 .navLink {
@@ -59,6 +74,12 @@
   transition: all $transition-fast;
   text-decoration: none;
   letter-spacing: 0.01em;
+  white-space: nowrap;
+
+  @include mobile {
+    padding: $space-1 $space-3;
+    font-size: 11px;
+  }
 
   &:hover {
     color: var(--text-primary);
