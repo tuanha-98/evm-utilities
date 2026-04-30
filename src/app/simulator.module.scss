@@ -9,6 +9,22 @@
   gap: $space-3;
 }
 
+.header {
+  padding: 0 $space-1;
+}
+
+.title {
+  font-size: $text-lg;
+  font-weight: $font-bold;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.subtitle {
+  font-size: $text-xs;
+  color: var(--text-tertiary);
+}
+
 .toolbar {
   @include flex-between;
   padding: 0 $space-1;

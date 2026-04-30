@@ -117,6 +117,10 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>EVM Simulator</h1>
+        <p className={styles.subtitle}>Trace transactions or simulate custom calls with Foundry.</p>
+      </div>
       <div className={styles.toolbar}>
         <div className={styles.tabs}>
           <button

@@ -140,6 +140,10 @@ export default function SignatureLookup() {
   return (
     <div className={`${styles.page} ${!searched ? styles.pageIdle : ''}`}>
       <div className={styles.searchWrapper}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Signature Lookup</h1>
+          <p className={styles.subtitle}>Search function and event signatures by name or hex selector.</p>
+        </div>
         <div className={styles.searchCard}>
           <SearchOutlined className={styles.searchIcon} />
           <input

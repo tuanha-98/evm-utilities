@@ -136,6 +136,10 @@ export default function Converter() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Converter</h1>
+          <p className={styles.subtitle}>Convert between Wei, Gwei, Ether and decode hex bytes.</p>
+        </div>
         <div className={styles.tabs}>
           <button
             className={`${styles.tab} ${activeTab === 'units' ? styles.active : ''}`}
