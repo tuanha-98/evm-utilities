@@ -164,7 +164,21 @@ export default function RpcBenchmark() {
           disabled={running.size > 0}
           style={{ marginTop: '12px' }}
         >
-          {running.size > 0 ? 'Testing...' : 'Benchmark All'}
+          {running.size === chains.length ? (
+                <>
+                    Benchmark All
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.spin}>
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                </>
+            ) : (
+                <>
+                    Benchmark All
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                </>
+            )}
         </button>
       </div>
 
@@ -184,7 +198,15 @@ export default function RpcBenchmark() {
                 onClick={() => benchmarkChain(chain.id)}
                 disabled={running.has(chain.id)}
               >
-                {running.has(chain.id) ? 'Testing...' : 'Test'}
+                {running.has(chain.id) ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.spin}>
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                )}
               </button>
             </div>
 
@@ -195,11 +217,11 @@ export default function RpcBenchmark() {
                   <span className={`${styles.rpcStatus} ${styles[rpc.status]}`} />
                   <span className={styles.rpcUrl}>{rpc.url.replace(/^https?:\/\//, '')}</span>
                   <span className={styles.rpcBlock}>
-                    {rpc.blockHeight !== null ? `#${rpc.blockHeight.toLocaleString()}` : '—'}
+                    {rpc.blockHeight !== null ? `#${rpc.blockHeight.toLocaleString()}` : ''}
                   </span>
                   <span className={`${styles.rpcLatency} ${getLatencyClass(rpc.latency)}`}>
                     {rpc.latency === null
-                      ? '—'
+                      ? ''
                       : rpc.latency < 0
                         ? 'Error'
                         : `${rpc.latency}ms`}
