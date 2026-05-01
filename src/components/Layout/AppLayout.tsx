@@ -8,7 +8,7 @@ import styles from './Layout.module.scss';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Simulator' },
-  { href: '/signature-lookup', label: 'Signatures' },
+  { href: '/selector', label: 'Selector' },
   { href: '/converter', label: 'Converter' },
   { href: '/rpc-benchmark', label: 'RPC' },
 ];
