@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useTheme } from '@/components/ThemeProvider';
 import '@xterm/xterm/css/xterm.css';
 import styles from './Terminal.module.scss';
 
@@ -9,10 +10,20 @@ export interface TerminalHandle {
   clear: () => void;
 }
 
+function getTerminalColors(): { bg: string; fg: string; selection: string } {
+  const s = getComputedStyle(document.documentElement);
+  return {
+    bg: s.getPropertyValue('--terminal-bg').trim() || '#0a0a0a',
+    fg: s.getPropertyValue('--terminal-fg').trim() || '#e5e5e5',
+    selection: s.getPropertyValue('--terminal-selection').trim() || 'rgba(37,99,235,0.3)',
+  };
+}
+
 const Terminal = forwardRef<TerminalHandle, {}>((_, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<any>(null);
   const fitAddonRef = useRef<any>(null);
+  const { theme } = useTheme();
 
   useImperativeHandle(ref, () => ({
     write: (data: string) => {
@@ -36,12 +47,13 @@ const Terminal = forwardRef<TerminalHandle, {}>((_, ref) => {
 
       if (disposed) return;
 
+      const colors = getTerminalColors();
       const term = new XTerm({
         theme: {
-          background: '#0a0a0a',
-          foreground: '#e5e5e5',
+          background: colors.bg,
+          foreground: colors.fg,
           cursor: 'transparent',
-          selectionBackground: 'rgba(37, 99, 235, 0.3)',
+          selectionBackground: colors.selection,
         },
         fontFamily: '"JetBrains Mono", "SF Mono", "Fira Code", monospace',
         fontSize: 12,
@@ -83,6 +95,23 @@ const Terminal = forwardRef<TerminalHandle, {}>((_, ref) => {
       fitAddonRef.current = null;
     };
   }, []);
+
+  // Update xterm colors when theme changes
+  useEffect(() => {
+    if (!xtermRef.current) return;
+    // Small delay to let CSS variables update
+    requestAnimationFrame(() => {
+      const colors = getTerminalColors();
+      xtermRef.current?.options && Object.assign(xtermRef.current.options, {
+        theme: {
+          background: colors.bg,
+          foreground: colors.fg,
+          cursor: 'transparent',
+          selectionBackground: colors.selection,
+        },
+      });
+    });
+  }, [theme]);
 
   return (
     <div className={styles.terminal}>

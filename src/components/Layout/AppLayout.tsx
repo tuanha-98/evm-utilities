@@ -1,22 +1,61 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useTheme } from '@/components/ThemeProvider';
+import { useTheme, THEMES, Theme } from '@/components/ThemeProvider';
 import styles from './Layout.module.scss';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Simulator' },
   { href: '/selector', label: 'Selector' },
   { href: '/converter', label: 'Converter' },
-  { href: '/rpc-benchmark', label: 'RPC' },
+  { href: '/benchmarker', label: 'Benchmarker' },
 ];
+
+const THEME_META: Record<Theme, { icon: React.ReactNode; label: string }> = {
+  light: { 
+    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>, 
+    label: 'Light' 
+  },
+  dark: { 
+    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>, 
+    label: 'Dark' 
+  },
+  retro: { 
+    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>, 
+    label: 'Retro' 
+  },
+  hacker: { 
+    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>, 
+    label: 'Hacker' 
+  },
+  cyberpunk: { 
+    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>, 
+    label: 'Cyberpunk' 
+  },
+  nord: { 
+    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20"/><path d="M12 2v20"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>, 
+    label: 'Nord' 
+  },
+};
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { theme, toggle } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const themeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (themeRef.current && !themeRef.current.contains(e.target as Node)) {
+        setThemeOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   return (
     <div className={styles.layout}>
@@ -36,25 +75,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </div>
-          <button className={styles.themeToggle} onClick={toggle} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
-            {theme === 'light' ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
+          <div className={styles.themeWrapper} ref={themeRef}>
+            <button className={styles.themeToggle} onClick={() => setThemeOpen(!themeOpen)} title="Change theme">
+              <span className={styles.themeIcon}>{THEME_META[theme].icon}</span>
+            </button>
+            {themeOpen && (
+              <div className={styles.themeDropdown}>
+                {THEMES.map((t) => (
+                  <button
+                    key={t}
+                    className={`${styles.themeOption} ${theme === t ? styles.active : ''}`}
+                    onClick={() => { setTheme(t); setThemeOpen(false); }}
+                  >
+                    <span className={styles.themeOptionIcon}>{THEME_META[t].icon}</span>
+                    <span>{THEME_META[t].label}</span>
+                  </button>
+                ))}
+              </div>
             )}
-          </button>
+          </div>
           <button className={styles.menuBtn} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               {menuOpen ? (

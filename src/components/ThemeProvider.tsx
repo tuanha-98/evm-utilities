@@ -2,36 +2,57 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'light' | 'dark';
+export const THEMES = ['light', 'dark', 'retro', 'hacker', 'cyberpunk', 'nord'] as const;
+export type Theme = (typeof THEMES)[number];
+
+const THEME_BG: Record<Theme, string> = {
+  light: '#f4f4f5',
+  dark: '#0e0e0e',
+  retro: '#eee8d5',
+  hacker: '#0c100c',
+  cyberpunk: '#0a0118',
+  nord: '#2a303c',
+};
 
 interface ThemeContextType {
   theme: Theme;
-  toggle: () => void;
+  setTheme: (theme: Theme) => void;
+  cycle: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType>({ theme: 'light', toggle: () => {} });
+const ThemeContext = createContext<ThemeContextType>({ theme: 'light', setTheme: () => {}, cycle: () => {} });
+
+function applyTheme(t: Theme) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.body.style.background = THEME_BG[t] || THEME_BG.light;
+}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setThemeState] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('theme') as Theme | null;
-    const resolved = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    setTheme(resolved);
-    document.documentElement.setAttribute('data-theme', resolved);
+    const resolved = stored && THEMES.includes(stored) ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    setThemeState(resolved);
+    applyTheme(resolved);
     setMounted(true);
   }, []);
 
-  const toggle = () => {
-    const next = theme === 'light' ? 'dark' : 'light';
-    setTheme(next);
+  const setTheme = (next: Theme) => {
+    setThemeState(next);
     localStorage.setItem('theme', next);
-    document.documentElement.setAttribute('data-theme', next);
+    applyTheme(next);
+  };
+
+  const cycle = () => {
+    const idx = THEMES.indexOf(theme);
+    const next = THEMES[(idx + 1) % THEMES.length];
+    setTheme(next);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle }}>
+    <ThemeContext.Provider value={{ theme, setTheme, cycle }}>
       <div style={{ visibility: mounted ? 'visible' : 'hidden' }}>
         {children}
       </div>

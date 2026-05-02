@@ -6,8 +6,8 @@
   height: 100%;
   border-radius: $radius-xl;
   overflow: hidden;
-  border: 1px solid var(--border-subtle);
-  background: #0a0a0a;
+  border: 1px solid var(--terminal-border);
+  background: var(--terminal-bg);
 }
 
 .header {
@@ -15,8 +15,8 @@
   align-items: center;
   gap: $space-2;
   padding: $space-3 $space-4;
-  background: #111111;
-  border-bottom: 1px solid #1f1f1f;
+  background: var(--terminal-header);
+  border-bottom: 1px solid var(--terminal-border);
 }
 
 .dot {
@@ -33,7 +33,7 @@
   flex: 1;
   text-align: center;
   font-size: 11px;
-  color: #525252;
+  color: var(--terminal-title);
   font-family: $font-mono;
 }
 
