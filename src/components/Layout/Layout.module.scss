@@ -165,7 +165,9 @@
 }
 
 .themeIcon {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 
@@ -212,9 +214,10 @@
 }
 
 .themeOptionIcon {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 20px;
-  text-align: center;
 }
 
 .content {
